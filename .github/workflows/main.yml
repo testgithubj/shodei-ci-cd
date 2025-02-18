@@ -1,51 +1,50 @@
 name: Shodei CI/CD on Ubuntu
-
+ 
 on:
   push:
-    branches: 
-      - main  # Trigger this action on a push to the main branch
-
+    branches: [ main ]  
+ 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+ 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3  # This action checks out the repository
-
+      uses: actions/checkout@v3
+ 
     - name: Test SSH Connection
-      uses: appleboy/ssh-action@v0.1.4  # Use a stable version
+      uses: appleboy/ssh-action@master
       with:
-        host: "your-ec2-ip"  # Replace with your EC2 instance IP address
-        username: "ubuntu"  # Replace with your EC2 username, usually 'ubuntu' for Ubuntu instances
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          echo "SSH connection test successful"
-    
-    - name: Deploy Application to AWS EC2
-      uses: appleboy/scp-action@v0.1.4  # Use a stable version
-      with:
-        host: "your-ec2-ip"  # Replace with your EC2 instance IP address
-        username: "ubuntu"  # EC2 username
-        key: ${{ secrets.EC2_SSH_KEY }}
-        source: "./"  # The local directory to copy (the root of your GitHub repo)
-        target: "/mnt/data/var/www/html/script"  # The destination on the EC2 instance
-        overwrite: true  # Overwrite existing files
-        rm: true  # Remove destination files that aren't in the source
-
-    - name: Copy .env File to Deployment Directory
-      uses: appleboy/ssh-action@v0.1.4  # Use a stable version
-      with:
-        host: "your-ec2-ip"
+        host: "server ip"
         username: "ubuntu"
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          sudo cp /home/ubuntu/secret/shodei/.env /mnt/data/var/www/html/script/.env  # Copy your .env file
-
-    - name: Set Correct Permissions
-      uses: appleboy/ssh-action@v0.1.4  # Use a stable version
+          echo "SSH connection test successful"
+ 
+    - name: Deploy Application to AWS EC2
+      uses: appleboy/scp-action@master
       with:
-        host: "your-ec2-ip"
+        host: "server ip"
+        username: "ubuntu"
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "./"
+        target: "/mnt/data/var/www/html/script"
+        overwrite: true
+        rm: true
+ 
+    - name: Copy .env File to Deployment Directory
+      uses: appleboy/ssh-action@master
+      with:
+        host: "server ip"
+        username: "ubuntu"
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          sudo cp /home/ubuntu/secret/shodei/.env /mnt/data/var/www/html/script/.env  
+ 
+    - name: Set Correct Permissions
+      uses: appleboy/ssh-action@master
+      with:
+        host: "server ip"
         username: "ubuntu"
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
@@ -53,19 +52,19 @@ jobs:
           sudo chmod -R 775 /mnt/data/var/www/html/script/storage
           sudo chmod -R 775 /mnt/data/var/www/html/script/bootstrap/cache
           echo "Permissions set successfully!"
-    
+ 
     - name: Install Dependencies and Restart Application
-      uses: appleboy/ssh-action@v0.1.4  # Use a stable version
+      uses: appleboy/ssh-action@master
       with:
-        host: "your-ec2-ip"
+        host: "server ip"
         username: "ubuntu"
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           cd /mnt/data/var/www/html/script/
-          composer install --no-dev --optimize-autoloader  # Install dependencies
-          php artisan migrate --force  # Run migrations
-          php artisan config:cache  # Cache config
-          php artisan route:cache  # Cache routes
-          php artisan view:cache  # Cache views
-          sudo systemctl restart nginx  # Restart Nginx to apply changes
+          composer install --no-dev --optimize-autoloader
+          php artisan migrate --force
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          sudo systemctl restart nginx
           echo "Deployment complete!"
